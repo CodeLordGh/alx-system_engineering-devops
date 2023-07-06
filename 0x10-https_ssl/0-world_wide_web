@@ -22,23 +22,23 @@
 # fi
 #-- To be evaluated --
 
-subdomains_all=( "www" "lb-01" "web-01" "web-02" )
-
-runDig () {
-    subdomain=$1
-    domain=$2
-
-    dig "$subdomain.$domain" | grep -A1 'ANSWER SECTION:' | tail -1 | awk -v s="$subdomain" 'BEGIN { FS = " " } ; { print "The subdomain " s " is a " $4 " record and points to " $5 }'
-}
-
-if [ $# -eq 1 ]; then
-    domain="$1"
-    for i in "${subdomains_all[@]}"
-    do
-	runDig "$i" "$domain"
-    done
-elif [ $# -eq 2 ]; then
-    domain="$1"
-    subdomain="$2"
-    runDig "$subdomain" "$domain"
+# Check if the required arguments are provided
+if [ -z "$1" ] || [ -z "$2" ]; then
+  echo "Usage: $0 domain subdomain"
+  exit 1
 fi
+# Get the domain name and subdomain
+domain=$1
+subdomain=$2
+# Get the list of subdomains
+subdomains=$(dig $domain | awk '/IN A/ {print $5}')
+# Check if the specified subdomain exists
+if [[ ! " ${subdomains[@]} " =~ " $subdomain " ]]; then
+  echo "Subdomain $subdomain does not exist"
+  exit 1
+fi
+# Get the record type and destination for the specified subdomain
+record_type=$(dig $domain $subdomain | awk '/IN A/ {print $2}')
+destination=$(dig $domain $subdomain | awk '/IN A/ {print $4}')
+# Print the information about the specified subdomain
+echo "The subdomain $subdomain is a $record_type record and points to $destination"
